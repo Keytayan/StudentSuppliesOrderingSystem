@@ -132,3 +132,121 @@ function updateCartDisplay() {
 
 // Initialize an empty display on load
 updateCartDisplay();
+
+// ==========================================
+// PAYMENT & RECEIPT LOGIC (Exam Steps 4 & 5)
+// ==========================================
+
+// Initialize the Payment Section UI
+function renderPaymentSection() {
+    const paymentSection = document.getElementById('payment-section');
+    paymentSection.innerHTML = `
+        <h2>Payment Section</h2>
+        <label for="cash-input">Cash Amount: ₱</label>
+        <input type="number" id="cash-input" min="0" step="0.01" placeholder="Enter amount">
+        <button onclick="processPayment()">Confirm Payment</button>
+        <p id="payment-error" style="color: red; font-weight: bold; margin-top: 10px;"></p>
+    `;
+}
+
+// Process and Validate Payment
+function processPayment() {
+    const totalElement = document.getElementById('total-amount-display');
+    const cashInput = document.getElementById('cash-input').value;
+    const errorDisplay = document.getElementById('payment-error');
+    
+    // Ensure cart is not empty
+    if (cart.length === 0) {
+        errorDisplay.textContent = "Error: Your cart is empty.";
+        return;
+    }
+
+    // Validation 1: Blank payment
+    if (cashInput === "") {
+        errorDisplay.textContent = "Error: Payment field cannot be empty.";
+        return;
+    }
+    
+    const cash = parseFloat(cashInput);
+    const totalAmount = parseFloat(totalElement.getAttribute('data-total'));
+    
+    // Validation 2: Invalid number
+    if (isNaN(cash)) {
+        errorDisplay.textContent = "Error: Please enter a valid number.";
+        return;
+    }
+    // Validation 3: Negative payment
+    if (cash < 0) {
+        errorDisplay.textContent = "Error: Payment cannot be a negative amount.";
+        return;
+    }
+    // Validation 4: Insufficient payment
+    if (cash < totalAmount) {
+        errorDisplay.textContent = "Error: Insufficient payment. You need ₱" + (totalAmount - cash).toFixed(2) + " more.";
+        return;
+    }
+
+    // If all validations pass, clear errors and compute change
+    errorDisplay.textContent = "";
+    const change = cash - totalAmount;
+    
+    // Generate the receipt
+    generateReceipt(totalAmount, cash, change);
+}
+
+// Generate Digital Receipt
+function generateReceipt(totalAmount, amountPaid, change) {
+    const receiptSection = document.getElementById('receipt-section');
+    
+    // Generate random transaction reference and get current date/time
+    const transactionRef = "TXN-" + Math.floor(Math.random() * 1000000);
+    const currentDateTime = new Date().toLocaleString();
+
+    let receiptHTML = `
+        <h2>Receipt Section</h2>
+        <div style="border: 1px dashed #333; padding: 20px; background-color: #fff; max-width: 400px; margin-top: 10px;">
+            <h3 style="text-align: center; margin-top: 0;">Student Supplies Shop</h3>
+            <p style="margin: 5px 0;"><strong>Ref No:</strong> ${transactionRef}</p>
+            <p style="margin: 5px 0;"><strong>Date:</strong> ${currentDateTime}</p>
+            <hr style="border-top: 1px dashed #ccc;">
+            <table width="100%" style="text-align: left; margin: 10px 0;">
+    `;
+
+    // List purchased products
+    cart.forEach(item => {
+        let subtotal = item.price * item.quantity;
+        receiptHTML += `
+            <tr>
+                <td style="padding: 3px 0;">${item.quantity}x ${item.name}</td>
+                <td>@ ₱${item.price.toFixed(2)}</td>
+                <td style="text-align: right;">₱${subtotal.toFixed(2)}</td>
+            </tr>
+        `;
+    });
+
+    receiptHTML += `
+            </table>
+            <hr style="border-top: 1px dashed #ccc;">
+            <p style="margin: 5px 0;"><strong>Total Due:</strong> <span style="float: right;">₱${totalAmount.toFixed(2)}</span></p>
+            <p style="margin: 5px 0;"><strong>Amount Paid:</strong> <span style="float: right;">₱${amountPaid.toFixed(2)}</span></p>
+            <p style="margin: 5px 0;"><strong>Change:</strong> <span style="float: right;">₱${change.toFixed(2)}</span></p>
+            <hr style="border-top: 1px dashed #ccc;">
+            <p style="text-align: center; color: #28a745; font-weight: bold;">Payment Successful!</p>
+            <button onclick="startNewTransaction()" style="width: 100%; padding: 10px; margin-top: 10px; background-color: #28a745;">New Transaction</button>
+        </div>
+    `;
+    
+    receiptSection.innerHTML = receiptHTML;
+}
+
+// Clear everything for a new transaction
+function startNewTransaction() {
+    cart = [];
+    updateCartDisplay();
+    document.getElementById('cash-input').value = "";
+    document.getElementById('payment-error').textContent = "";
+    document.getElementById('receipt-section').innerHTML = '<h2>Receipt Section</h2>';
+}
+
+// Call this immediately to render the payment input on load
+renderPaymentSection();
